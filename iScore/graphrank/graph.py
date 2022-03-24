@@ -473,8 +473,8 @@ class GenGraph():
         db = interface(self.pdbfile)
         res_contact_pairs = db.get_contact_residues(cutoff = self.cutoff,
                                                     allchains=True,
-                                                    # chain1=self.chain_label[0],
-                                                    # chain2=self.chain_label[1],
+                                                    chain1=self.chain_label[0],
+                                                    chain2=self.chain_label[1],
                                                     return_contact_pairs=True)
 
 
