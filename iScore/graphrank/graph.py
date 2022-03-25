@@ -234,7 +234,7 @@ class Graph(object):
             pssm[chain] = self.read_PSSM_data(pssm_dict[chain])
 
 
-         # residue name translation dict
+        # residue name translation dict
         resmap = {
         'A' : 'ALA', 'R' : 'ARG', 'N' : 'ASN', 'D' : 'ASP', 'C' : 'CYS', 'E' : 'GLU', 'Q' : 'GLN',
         'G' : 'GLY', 'H' : 'HIS', 'I' : 'ILE', 'L' : 'LEU', 'K' : 'LYS', 'M' : 'MET', 'F' : 'PHE',
@@ -353,7 +353,6 @@ class GenGraph():
         Returns:
             bool: 1 if format is ok 0 otherwise
         """
-
         key = list(self.pssm.keys())[0]
         if aligned:
             return len(self.pssm[key][0]) == 25
@@ -696,6 +695,8 @@ def iscore_graph(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
             f5 = None
 
         # create the graphs
+        if not pssm: 
+            continue
         GenGraph(pdbfile,pssm,aligned=aligned,outname=graphfile,export=True,h5file=f5)
 
         if export_hdf5:
