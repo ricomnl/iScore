@@ -1,5 +1,7 @@
-from iScore.graphrank.process import DataProcess
 import unittest
+
+from iScore.graphrank.process import DataProcess
+
 
 class TestProcess(unittest.TestCase):
     """Test Post Process of data."""
@@ -10,7 +12,6 @@ class TestProcess(unittest.TestCase):
         proc.add_label(self.caseID)
         proc.hit_rate(showfig=False)
 
-
     def setUp(self):
-        self.output = './process/iScorePredict.dat'
-        self.caseID = './process/caseID.lst'
+        self.output = "./process/iScorePredict.dat"
+        self.caseID = "./process/caseID.lst"

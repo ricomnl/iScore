@@ -1,22 +1,23 @@
-import numpy as np
 from collections import OrderedDict as odict
 
-class Plot(object):
+import numpy as np
 
+
+class Plot(object):
     def __init__(self):
         """Plot Data (hitrate) generated with iScore."""
 
         self.available_scores = []
         self.data = odict()
 
-    def read_iscore_file(self,fname):
+    def read_iscore_file(self, fname):
         """Read the utput file of a iScore calculation.
 
         Args:
             fname (str): file name containing the data
         """
 
-        with open(fname,'r') as f:
+        with open(fname, "r") as f:
             data = f.readlines()
 
         for il, l in enumerate(data):
@@ -31,17 +32,17 @@ class Plot(object):
                 if mol_name not in self.data:
                     self.data[mol_name] = dict()
 
-                for k,v in zip(keys,l[1:]):
+                for k, v in zip(keys, l[1:]):
                     self.data[mol_name][k] = float(v)
 
-    def read_capri(self,fname):
+    def read_capri(self, fname):
         """Read the utput file of a capri calculation.
 
         Args:
             fname (str): file name containing the data
         """
 
-        with open(fname,'r') as f:
+        with open(fname, "r") as f:
             data = f.readlines()
 
         for l in data:
@@ -51,17 +52,17 @@ class Plot(object):
 
             if mol_name not in self.data:
                 self.data[mol_name] = dict()
-            self.data[mol_name]['capri'] = cat
-        self.available_scores.append('capri')
+            self.data[mol_name]["capri"] = cat
+        self.available_scores.append("capri")
 
-    def read_haddock(self,fname):
+    def read_haddock(self, fname):
         """Read the utput file of a haddock calculation.
 
         Args:
             fname (str): file name containing the data
         """
 
-        with open(fname,'r') as f:
+        with open(fname, "r") as f:
             data = f.readlines()
 
         for l in data:
@@ -71,11 +72,11 @@ class Plot(object):
 
             if mol_name not in self.data:
                 self.data[mol_name] = dict()
-            self.data[mol_name]['haddock'] = hs
+            self.data[mol_name]["haddock"] = hs
 
-        self.available_scores.append('haddock')
+        self.available_scores.append("haddock")
 
-    def get_hitrate(self,data='iScore',ref='capri',normalize=True):
+    def get_hitrate(self, data="iScore", ref="capri", normalize=True):
         """Compute the hitrate of a given scoring.
         Args:
             data (str): name of the data to process
@@ -83,12 +84,14 @@ class Plot(object):
         """
 
         if data not in self.available_scores:
-            raise ValueError('%s not in available socres : ' %data, self.available_scores)
+            raise ValueError(
+                "%s not in available socres : " % data, self.available_scores
+            )
 
         values, truth = [], []
-        for k,v in self.data.items():
+        for k, v in self.data.items():
 
-            if all(k in v for k in [data,ref]):
+            if all(k in v for k in [data, ref]):
                 values.append(v[data])
                 truth.append(v[ref])
 
@@ -101,29 +104,27 @@ class Plot(object):
 
         # revert if necessary
         if data.endswith("GraphRank"):
-              index = index[::-1]
+            index = index[::-1]
 
-
-        #sort the data
+        # sort the data
         values = values[index]
         truth = truth[index]
 
         # return the hitrate
-        if ref == 'capri':
-            hr =  np.cumsum(truth<=3)
+        if ref == "capri":
+            hr = np.cumsum(truth <= 3)
             if normalize:
-                return hr/np.max(hr)
+                return hr / np.max(hr)
             else:
                 return hr
         else:
-            raise ValueError('Only possible reference is CAPRI for the moment')
+            raise ValueError("Only possible reference is CAPRI for the moment")
 
-
-    def get_score(self,name):
+    def get_score(self, name):
 
         names = self.data.keys()
         score = []
         for n in names:
             score.append(self.data[n][name])
-            
+
         return np.array(score)

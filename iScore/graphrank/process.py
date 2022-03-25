@@ -1,10 +1,12 @@
-import sys, os
-import numpy as np
+import os
+import sys
+
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 class DataProcess(object):
-
-    def __init__(self,fname):
+    def __init__(self, fname):
         """Plot Class for iScore output.
 
         Example:
@@ -29,23 +31,23 @@ class DataProcess(object):
         """
 
         if not os.path.isfile(fname):
-            raise FileNotFoundError('File %s was not found' %fname)
+            raise FileNotFoundError("File %s was not found" % fname)
 
-        with open(fname,'r') as f:
+        with open(fname, "r") as f:
             raw_data = f.readlines()
 
         data = dict()
-        data['ID'], data['label'], data['pred'], data['val'] = [], [], [], []
+        data["ID"], data["label"], data["pred"], data["val"] = [], [], [], []
         for l in raw_data[1:]:
             l = l.split()
-            data['ID'].append(l[0])
-            data['label'].append(l[1])
-            data['pred'].append(l[2])
-            data['val'].append(float(l[3]))
+            data["ID"].append(l[0])
+            data["label"].append(l[1])
+            data["pred"].append(l[2])
+            data["val"].append(float(l[3]))
 
         return data
 
-    def add_label(self,fname):
+    def add_label(self, fname):
         """Add label to an existing data.
 
         Args:
@@ -53,9 +55,9 @@ class DataProcess(object):
         """
 
         if not os.path.isfile(fname):
-            raise FileNotFoundError('File %s was not found' %fname)
+            raise FileNotFoundError("File %s was not found" % fname)
 
-        with open(fname,'r') as f:
+        with open(fname, "r") as f:
             d = f.readlines()
 
         for l in d:
@@ -63,14 +65,13 @@ class DataProcess(object):
             ID, label = ls[0], int(ls[1])
 
             try:
-                index = self.data['ID'].index(ID)
-                self.data['label'][index] = label
+                index = self.data["ID"].index(ID)
+                self.data["label"][index] = label
 
             except:
-                raise ValueError("ID %s not found in data" %ID)
+                raise ValueError("ID %s not found in data" % ID)
 
-
-    def hit_rate(self,showfig=True, color='blue', legend="", figname=None):
+    def hit_rate(self, showfig=True, color="blue", legend="", figname=None):
         """Plot the hit rate of the prediction.
 
         Args:
@@ -82,23 +83,19 @@ class DataProcess(object):
 
         indexsort = np.argsort(np.array(self.data["val"]))
 
-        if 'None' in self.data['label']:
-            raise ValueError('Some labels are not defined')
+        if "None" in self.data["label"]:
+            raise ValueError("Some labels are not defined")
         else:
-            self.data["label"] = np.array(self.data["label"]).astype('int')
+            self.data["label"] = np.array(self.data["label"]).astype("int")
 
         label = np.array(self.data["label"])[indexsort][::-1]
         print(label)
         hit = np.cumsum(label)
-        fig,_ = plt.subplots()
-        plt.plot(hit,c=color,label=legend)
+        fig, _ = plt.subplots()
+        plt.plot(hit, c=color, label=legend)
 
         if figname is not None:
             fig.savefig(figname)
             plt.close()
         elif showfig:
             plt.show()
-
-
-
-

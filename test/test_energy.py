@@ -1,14 +1,15 @@
-from iScore.energetic.internal_energy import InternalEnergy
-from iScore.energetic.haddock_energy import HaddockEnergy
-from iScore.energetic.energy import iscore_energy
 import unittest
+
+from iScore.energetic.energy import iscore_energy
+from iScore.energetic.haddock_energy import HaddockEnergy
+from iScore.energetic.internal_energy import InternalEnergy
 
 
 class TestEnergetic(unittest.TestCase):
-    """ Test energetic calculation."""
+    """Test energetic calculation."""
 
     def setUp(self):
-        self.pdb = './graph/1ATN.pdb'
+        self.pdb = "./graph/1ATN.pdb"
 
     def test_vdw_clb(self):
         E = InternalEnergy(self.pdb)
@@ -16,12 +17,13 @@ class TestEnergetic(unittest.TestCase):
         if E.evdw != -67.86502277452256 or E.ec != 417.7057796713902:
             raise AssertionError()
 
+
 class TestReadEnergy(unittest.TestCase):
     """Test the read of HADDOCK energy."""
 
     def setUp(self):
-        self.pdb = './rank/test/pdb/1ACB_1w.pdb'
-        self.pdb_fail = './rank/train/pdb/2I25.pdb'
+        self.pdb = "./rank/test/pdb/1ACB_1w.pdb"
+        self.pdb_fail = "./rank/train/pdb/2I25.pdb"
 
     def test_read(self):
         e = HaddockEnergy(self.pdb)
@@ -36,11 +38,12 @@ class TestReadEnergy(unittest.TestCase):
         e = HaddockEnergy(self.pdb_fail)
         e.read_energies()
 
+
 class TestEnergy(unittest.TestCase):
     """Test the process of the energy terms."""
 
     def setUp(self):
-        self.pdb = './rank/test/pdb/'
+        self.pdb = "./rank/test/pdb/"
 
     def test(self):
         iscore_energy(pdb_path=self.pdb)

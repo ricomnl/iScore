@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-import os
-from iScore.graphrank.graph import iscore_graph_mpi
 import argparse
+import os
+
 from mpi4py import MPI
+
+from iScore.graphrank.graph import iscore_graph_mpi
 
 #################################################################
 # Create the graphs that correspond to the pdb and pssm files

@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 #!/usr/bin/env python
+import argparse
 import os
 import subprocess
-import argparse
+
+from mpi4py import MPI
+
 import iScore
+from iScore.energetic.energy import iscore_energy
+from iScore.function.score import iscore
 from iScore.graphrank.graph import iscore_graph_mpi
 from iScore.graphrank.kernel import iscore_kernel_mpi
 from iScore.graphrank.rank import iscore_svm
-
-from iScore.energetic.energy import iscore_energy
-from iScore.function.score import iscore
-
-from mpi4py import MPI
 
 # set the default trained model
 pkg_path = os.path.dirname(iScore.__file__)

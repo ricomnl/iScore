@@ -1,16 +1,16 @@
-import sys, os
-import numpy as np
-
-from iScore.graphrank.graph import Graph
+import os
 import pickle
+import sys
 import tarfile
 
+import numpy as np
 from libsvm.svmutil import *
+
+from iScore.graphrank.graph import Graph
 
 
 class DataSet(object):
-
-    def __init__(self,trainID,Kfile,maxlen,testID=None):
+    def __init__(self, trainID, Kfile, maxlen, testID=None):
         """Cretae a data set for SVM.
 
         Args:
@@ -32,7 +32,7 @@ class DataSet(object):
         self.ntrain = len(self.train_name)
         self.ntest = len(self.test_name)
 
-        self.Kmat = np.zeros((self.ntest,self.ntrain))
+        self.Kmat = np.zeros((self.ntest, self.ntrain))
 
         self.maxlen = maxlen
 
@@ -52,28 +52,28 @@ class DataSet(object):
             FileNotFoundError: If idlist is not an existing file
             ValueError: If the format of idlist is not understood
         """
-        if isinstance(idlist,str):
+        if isinstance(idlist, str):
             if os.path.isfile(idlist):
 
-                with open(idlist,'r') as  f:
+                with open(idlist, "r") as f:
                     data = f.readlines()
                 data = np.array([l.split() for l in data])
-                nl,nc = data.shape
+                nl, nc = data.shape
 
                 if nc == 2:
-                    classes = data[:,0].astype('int')
-                    names = data[:,1]
+                    classes = data[:, 0].astype("int")
+                    names = data[:, 1]
                     return names.tolist(), classes.tolist()
 
                 else:
-                    print('Warning: Ground truth classes not found in '+idlist)
-                    names = data[:,0]
-                    classes = [None]*nl
+                    print("Warning: Ground truth classes not found in " + idlist)
+                    names = data[:, 0]
+                    classes = [None] * nl
                     return names.tolist(), classes
             else:
-                raise FileNotFoundError(idlist, 'is not a file')
+                raise FileNotFoundError(idlist, "is not a file")
 
-        elif isinstance(idlist,list):
+        elif isinstance(idlist, list):
 
             nl = len(idlist)
             nc = len(idlist[0])
@@ -82,13 +82,13 @@ class DataSet(object):
                 names = [id_[1] for id_ in idlist]
                 return names, classes
             else:
-                #print('Warning: Ground truth classes not found in list' )
+                # print('Warning: Ground truth classes not found in list' )
                 names = idlist
-                classes = [None]*nl
+                classes = [None] * nl
                 return names, classes
 
         else:
-            raise ValueError(idlist, 'not a proper IDs file')
+            raise ValueError(idlist, "not a proper IDs file")
 
     def get_K_matrix(self):
         """get the Kernel matrix of the set
@@ -96,21 +96,21 @@ class DataSet(object):
         Raises:
             ValueError: if maxlen was specified and is larger than the maximum possible length
         """
-        if not isinstance(self.Kfile,list):
+        if not isinstance(self.Kfile, list):
             self.Kfile = [self.Kfile]
 
         K = dict()
         for f in self.Kfile:
-            K.update(pickle.load(open(f,'rb')))
+            K.update(pickle.load(open(f, "rb")))
 
         # get the max walk len
-        #max_possible_len = K['param']['walk']
+        # max_possible_len = K['param']['walk']
 
         # see if we can add extension (obsolete)
         addext = False
         key = list(K.keys())[1]
         max_possible_len = len(K[key])
-        if key[0].endswith('.pckl'):
+        if key[0].endswith(".pckl"):
             addext = True
 
         # get the max walk len
@@ -119,38 +119,48 @@ class DataSet(object):
 
         # chek if that's ok
         elif self.maxlen > max_possible_len:
-            print('Error : Maximum walk length possible in kernel file : %d ' %max_possible_len)
-            print('      : Requested walk length                       : %d ' %maxlen)
-            raise ValueError('maxlen too large')
+            print(
+                "Error : Maximum walk length possible in kernel file : %d "
+                % max_possible_len
+            )
+            print("      : Requested walk length                       : %d " % maxlen)
+            raise ValueError("maxlen too large")
 
-        for itest,name_test in enumerate(self.test_name):
+        for itest, name_test in enumerate(self.test_name):
 
             if addext:
-                name_test += '.pckl'
+                name_test += ".pckl"
 
-            for itrain,name_train in enumerate(self.train_name):
+            for itrain, name_train in enumerate(self.train_name):
 
                 if addext:
-                    name_train += '.pckl'
+                    name_train += ".pckl"
 
-                if (name_test,name_train) in K:
-                    self.Kmat[itest,itrain] = np.sum(K[(name_test,name_train)][:self.maxlen])
+                if (name_test, name_train) in K:
+                    self.Kmat[itest, itrain] = np.sum(
+                        K[(name_test, name_train)][: self.maxlen]
+                    )
 
-                elif (name_train,name_test) in K:
-                    self.Kmat[itest,itrain] = np.sum(K[(name_train,name_test)][:self.maxlen])
+                elif (name_train, name_test) in K:
+                    self.Kmat[itest, itrain] = np.sum(
+                        K[(name_train, name_test)][: self.maxlen]
+                    )
 
                 else:
 
-                    print('Warning : Graph combination (%s,%s) not found in files' %(name_test,name_train))
+                    print(
+                        "Warning : Graph combination (%s,%s) not found in files"
+                        % (name_test, name_train)
+                    )
                     for f in self.Kfile:
-                        print('\t\t',f)
-                    #raise ValueError('Graphs not Found')
+                        print("\t\t", f)
+                    # raise ValueError('Graphs not Found')
 
         self.Kmat = self.Kmat.tolist()
 
-class SVM(object):
 
-    def __init__(self,trainDataSet=None,testDataSet=None,load_model=None):
+class SVM(object):
+    def __init__(self, trainDataSet=None, testDataSet=None, load_model=None):
         """Class that handles the SVM training/testing process
 
         Args:
@@ -163,7 +173,7 @@ class SVM(object):
         if load_model is not None:
             self.model = svm_load_model(load_model)
 
-    def train(self,model_file_name=None):
+    def train(self, model_file_name=None):
         """Train the model using the the train dataset
 
         Args:
@@ -173,24 +183,29 @@ class SVM(object):
             ValueError: If no training data set was specified
         """
         if self.trainDataSet is None:
-            raise ValueError('You should specify a trainDataSet')
+            raise ValueError("You should specify a trainDataSet")
 
-        print('Training Model')
+        print("Training Model")
         kdata = []
-        for i,k in enumerate(self.trainDataSet.Kmat):
-            kdata.append([i+1]+k)
+        for i, k in enumerate(self.trainDataSet.Kmat):
+            kdata.append([i + 1] + k)
 
-        prob = svm_problem(self.trainDataSet.train_class,kdata,isKernel=True)
-        #param = svm_parameter('-t 4 -c 4 -b 1')
-        param = svm_parameter('-t 4')
-        self.model = svm_train(prob,param)
+        prob = svm_problem(self.trainDataSet.train_class, kdata, isKernel=True)
+        # param = svm_parameter('-t 4 -c 4 -b 1')
+        param = svm_parameter("-t 4")
+        self.model = svm_train(prob, param)
         self.mode_file_name = model_file_name
 
         if model_file_name is not None:
-            svm_save_model(model=self.model,model_file_name=model_file_name)
+            svm_save_model(model=self.model, model_file_name=model_file_name)
 
-    def archive(self,graph_path='./graph/',kernel_path='./kernel/',
-                include_kernel=False,model_name='training_set.tar.gz'):
+    def archive(
+        self,
+        graph_path="./graph/",
+        kernel_path="./kernel/",
+        include_kernel=False,
+        model_name="training_set.tar.gz",
+    ):
         """Create an archive file to store the model and the graphs/kernels
 
         Args:
@@ -203,23 +218,22 @@ class SVM(object):
             ValueError: if the grapg or kernel dir do not exists
         """
         # init the model
-        tar = tarfile.open(model_name,"w:gz")
+        tar = tarfile.open(model_name, "w:gz")
 
         # get the graphs
         if not os.path.isdir(graph_path):
-            raise ValueError('Graph directory %s does not exist' %graph_path)
+            raise ValueError("Graph directory %s does not exist" % graph_path)
         graph_names = os.listdir(graph_path)
 
-
         for g in graph_names:
-            gfile = os.path.join(graph_path,g)
+            gfile = os.path.join(graph_path, g)
             tar.add(gfile)
 
-        #get the kernel
+        # get the kernel
         if include_kernel:
 
             if not os.path.isdir(kernel_path):
-                raise ValueError('Kernel directory %s does not exist' )
+                raise ValueError("Kernel directory %s does not exist")
 
             kernel_names = os.listdir(kernel_path)
 
@@ -230,7 +244,7 @@ class SVM(object):
         tar.add(self.mode_file_name)
         tar.close()
 
-    def predict(self,package_name):
+    def predict(self, package_name):
         """Predict the class of a test set.
 
         Args:
@@ -240,60 +254,68 @@ class SVM(object):
             ValueError: if no test set are specified
         """
         if self.testDataSet is None:
-            raise ValueError('You should specify a testDataSet')
+            raise ValueError("You should specify a testDataSet")
 
         # extrat the model
         tar = tarfile.open(package_name)
-        dict_tar = dict(zip(tar.getnames(),tar.getmembers()))
-        tar.makefile(dict_tar['svm_model.pkl'],'./_tmp_model.pkl')
-        model = svm_load_model('./_tmp_model.pkl')
+        dict_tar = dict(zip(tar.getnames(), tar.getmembers()))
+        tar.makefile(dict_tar["svm_model.pkl"], "./_tmp_model.pkl")
+        model = svm_load_model("./_tmp_model.pkl")
 
         # check if we have ground truth
         ground_truth = self.testDataSet.test_class
         if None in ground_truth:
-            print('Warning ground truth missing. SVM accuracy will be meaningless')
-            ground_truth = [0]*len(ground_truth)
+            print("Warning ground truth missing. SVM accuracy will be meaningless")
+            ground_truth = [0] * len(ground_truth)
 
         # pedict the classes
-        self.testDataSet.iScore = svm_predict(ground_truth,self.testDataSet.Kmat,model)
-        #print(self.testDataSet.iScore)
+        self.testDataSet.iScore = svm_predict(
+            ground_truth, self.testDataSet.Kmat, model
+        )
+        # print(self.testDataSet.iScore)
 
         # clean up crew
-        os.remove('./_tmp_model.pkl')
+        os.remove("./_tmp_model.pkl")
 
-    def export_prediction(self,fname):
+    def export_prediction(self, fname):
         """Export the predicted values to file and/or pickle it
 
         Args:
             fname (str): file name
         """
-        if fname.endswith('.pkl') or fname.endswith('.pckl'):
-            self._export_score_pickle(fname,
-                                      self.testDataSet.test_name,
-                                      self.testDataSet.test_class,
-                                      self.testDataSet.iScore)
+        if fname.endswith(".pkl") or fname.endswith(".pckl"):
+            self._export_score_pickle(
+                fname,
+                self.testDataSet.test_name,
+                self.testDataSet.test_class,
+                self.testDataSet.iScore,
+            )
 
-
-        elif fname.endswith('.dat') or fname.endswith('.txt'):
-            self._export_score_text(fname,
-                                    self.testDataSet.test_name,
-                                    self.testDataSet.test_class,
-                                    self.testDataSet.iScore)
+        elif fname.endswith(".dat") or fname.endswith(".txt"):
+            self._export_score_text(
+                fname,
+                self.testDataSet.test_name,
+                self.testDataSet.test_class,
+                self.testDataSet.iScore,
+            )
 
         else:
             fname = os.path.splitext(fname)[0]
-            self._export_score_pickle(fname+'.pkl',
-                          self.testDataSet.test_name,
-                          self.testDataSet.test_class,
-                          self.testDataSet.iScore)
-            self._export_score_text(fname+'.dat',
-                                    self.testDataSet.test_name,
-                                    self.testDataSet.test_class,
-                                    self.testDataSet.iScore)
-
+            self._export_score_pickle(
+                fname + ".pkl",
+                self.testDataSet.test_name,
+                self.testDataSet.test_class,
+                self.testDataSet.iScore,
+            )
+            self._export_score_text(
+                fname + ".dat",
+                self.testDataSet.test_name,
+                self.testDataSet.test_class,
+                self.testDataSet.iScore,
+            )
 
     @staticmethod
-    def _export_score_pickle(fname,name,label,score):
+    def _export_score_pickle(fname, name, label, score):
         """Export the prediction as pickle file
 
         Args:
@@ -303,16 +325,18 @@ class SVM(object):
             score (TYPE): iScore
         """
         data = {}
-        for i,n in enumerate(name):
-            data[n] = {'ground_truth' : label[i],
-                       'prediction' : score[0][i],
-                       'decision_value' : score[2][i]}
-        f = open(fname,'wb')
-        pickle.dump(data,f)
+        for i, n in enumerate(name):
+            data[n] = {
+                "ground_truth": label[i],
+                "prediction": score[0][i],
+                "decision_value": score[2][i],
+            }
+        f = open(fname, "wb")
+        pickle.dump(data, f)
         f.close()
 
     @staticmethod
-    def _export_score_text(fname,name,label,score):
+    def _export_score_text(fname, name, label, score):
         """Export the prediction as text file
 
         Args:
@@ -321,22 +345,38 @@ class SVM(object):
             label (TYPE): list of the conformation ground truth label
             score (TYPE): iScore
         """
-        f = open(fname,'w')
-        f.write('{:10} {:>5}     {:>5}     {:>14}\n'.format('#Name','label','pred','decision_value'))
-        for i,n in enumerate(name):
+        f = open(fname, "w")
+        f.write(
+            "{:10} {:>5}     {:>5}     {:>14}\n".format(
+                "#Name", "label", "pred", "decision_value"
+            )
+        )
+        for i, n in enumerate(name):
             if label[i] is None:
                 st = "{:10} {:>5}     {:5}     {: 14.3f}\n"
-                il = 'None'
+                il = "None"
             else:
                 st = "{:10} {:5}     {:5d}     {: 14.3f}\n"
                 il = int(label[i])
-            f.write(st.format(n,il,int(score[0][i]),score[2][i][0]))
+            f.write(st.format(n, il, int(score[0][i]), score[2][i][0]))
         f.close()
 
-def iscore_svm(train=False,train_class='caseID.lst',trainID=None,testID=None,
-                kernel='./kernel/',save_model='svm_model.pkl',load_model=None,
-                package_model=False,package_name=None,graph='./graph/',
-                include_kernel=False, maxlen = None,score_file='GraphRank'):
+
+def iscore_svm(
+    train=False,
+    train_class="caseID.lst",
+    trainID=None,
+    testID=None,
+    kernel="./kernel/",
+    save_model="svm_model.pkl",
+    load_model=None,
+    package_model=False,
+    package_name=None,
+    graph="./graph/",
+    include_kernel=False,
+    maxlen=None,
+    score_file="GraphRank",
+):
     """Function called in the binary iScore.predict and iScore.train
 
     Args:
@@ -361,25 +401,27 @@ def iscore_svm(train=False,train_class='caseID.lst',trainID=None,testID=None,
     # figure out the kernel files
     # if a dir was given all the file in that dir are considered
     if os.path.isdir(kernel):
-        Kfile =  [kernel + f for f in os.listdir(kernel)]
+        Kfile = [kernel + f for f in os.listdir(kernel)]
     elif os.path.isfile(kernel):
         Kfile = kernel
     else:
-        raise ValueError('Kernel file not found')
+        raise ValueError("Kernel file not found")
 
     # train the model
     if train:
 
-        traindata = DataSet(train_class,Kfile,maxlen)
+        traindata = DataSet(train_class, Kfile, maxlen)
         svm = SVM(trainDataSet=traindata)
         svm.train(model_file_name=save_model)
 
         if package_model:
-            print('Create Archive file : ', package_name)
-            svm.archive(graph_path=graph,
-                        kernel_path=kernel,
-                        include_kernel=include_kernel,
-                        model_name=package_name)
+            print("Create Archive file : ", package_name)
+            svm.archive(
+                graph_path=graph,
+                kernel_path=kernel,
+                include_kernel=include_kernel,
+                model_name=package_name,
+            )
 
     # use a trained model for prediction
     else:
@@ -387,17 +429,21 @@ def iscore_svm(train=False,train_class='caseID.lst',trainID=None,testID=None,
         if trainID is None:
             tar = tarfile.open(package_name)
             members = tar.getmembers()
-            trainID = [os.path.splitext(os.path.basename(m.name))[0] for m in members if '/graph/' in m.name]
+            trainID = [
+                os.path.splitext(os.path.basename(m.name))[0]
+                for m in members
+                if "/graph/" in m.name
+            ]
 
         if testID is None:
-            testID = [os.path.splitext(n)[0] for n in os.listdir('./graph/')]
+            testID = [os.path.splitext(n)[0] for n in os.listdir("./graph/")]
         else:
             if os.path.isdir(testID):
                 testID = [os.path.splitext(n)[0] for n in os.listdir(testID)]
             elif os.path.isfile(testID):
                 testID = testID
 
-        testdata = DataSet(trainID,Kfile,maxlen,testID=testID)
-        svm = SVM(testDataSet = testdata)
-        svm.predict(package_name = package_name)
+        testdata = DataSet(trainID, Kfile, maxlen, testID=testID)
+        svm = SVM(testDataSet=testdata)
+        svm.predict(package_name=package_name)
         svm.export_prediction(score_file)

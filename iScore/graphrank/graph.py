@@ -1,18 +1,25 @@
 import os
-import numpy as np
-import scipy.io as spio
 import pickle
-import h5py
-from pdb2sql import pdb2sql
-from pdb2sql import interface
-from Bio import pairwise2
 import warnings
 
-class Graph(object):
+import h5py
+import numpy as np
+import scipy.io as spio
+from Bio import pairwise2
+from pdb2sql import interface, pdb2sql
 
-    def __init__(self,fname=None,file_type=None, chain_label=['A','B'],
-                      name=None,nodes_pssm=None,
-                      nodes_info=None,edges_index=None):
+
+class Graph(object):
+    def __init__(
+        self,
+        fname=None,
+        file_type=None,
+        chain_label=["A", "B"],
+        name=None,
+        nodes_pssm=None,
+        nodes_info=None,
+        edges_index=None,
+    ):
         """Graph object corresponding to a given PDB file.
 
         Example:
@@ -35,7 +42,7 @@ class Graph(object):
         self.fname = fname
 
         if fname is not None:
-            self.load(fname,file_type)
+            self.load(fname, file_type)
         else:
             self.name = name
             self.chain_label = chain_label
@@ -46,7 +53,7 @@ class Graph(object):
             if self._valid_data():
                 self._process_data()
 
-    def load(self,fname,file_type=None):
+    def load(self, fname, file_type=None):
         """Load an existing graph file.
 
         Args:
@@ -58,46 +65,46 @@ class Graph(object):
             FileNotFoundError: If the file is not found
         """
         if not os.path.isfile(fname):
-            raise FileNotFoundError('File %s not found' %fname)
+            raise FileNotFoundError("File %s not found" % fname)
 
         # determine file type if it's not given
         if file_type is None:
-            dict_ext = {'matlab':['.mat','.MAT'],
-                        'pickle':['.pkl','.pckl'] }
+            dict_ext = {"matlab": [".mat", ".MAT"], "pickle": [".pkl", ".pckl"]}
             ext = os.path.splitext(fname)[1]
-            for k,v in dict_ext.items():
+            for k, v in dict_ext.items():
                 if ext in v:
                     file_type = k
                     break
 
         # import the graph
-        if file_type == 'matlab':
+        if file_type == "matlab":
             self._load_from_matlab(fname)
-        elif file_type == 'pickle':
+        elif file_type == "pickle":
             self._load_from_pickle(fname)
 
-    def _load_from_matlab(self,fname):
+    def _load_from_matlab(self, fname):
         """Load a matlab graph file
 
         Args:
             fname (str): name of the file
         """
-        data = spio.loadmat(fname,squeeze_me=True)['G']
+        data = spio.loadmat(fname, squeeze_me=True)["G"]
 
         self.name = os.path.splitext(fname)[0]
-        self.nodes_pssm_data = np.array([p.tolist() for p in data['Nodes'][()]['pssm'][()]])
-        self.nodes_info_data = data['Nodes'][()]['info'][()]
-        self.edges_index = np.array(data['Edges'][()]['idx'][()])-1
+        self.nodes_pssm_data = np.array(
+            [p.tolist() for p in data["Nodes"][()]["pssm"][()]]
+        )
+        self.nodes_info_data = data["Nodes"][()]["info"][()]
+        self.edges_index = np.array(data["Edges"][()]["idx"][()]) - 1
         self._process_data()
 
-
-    def _load_from_pickle(self,fname):
+    def _load_from_pickle(self, fname):
         """Load a pickle file.
 
         Args:
             fname (str): File name
         """
-        f =open(fname,'rb')
+        f = open(fname, "rb")
         data = pickle.load(f)
         f.close()
 
@@ -115,9 +122,11 @@ class Graph(object):
 
         self.edges_pssm = []
         for ind in self.edges_index:
-            self.edges_pssm.append( self.nodes_pssm_data[ind[0]].tolist() + self.nodes_pssm_data[ind[1]].tolist()  )
+            self.edges_pssm.append(
+                self.nodes_pssm_data[ind[0]].tolist()
+                + self.nodes_pssm_data[ind[1]].tolist()
+            )
         self.edges_pssm = np.array(self.edges_pssm)
-
 
     def _valid_data(self):
         """Check that the data is correct and does not contain Nones
@@ -125,39 +134,39 @@ class Graph(object):
         Returns:
             bool: boolean to ensure the validity of the data
         """
-        data = [self.nodes_pssm_data,self.nodes_info_data,self.edges_index]
+        data = [self.nodes_pssm_data, self.nodes_info_data, self.edges_index]
         return np.all(data != None)
 
-    def pickle(self,fname):
+    def pickle(self, fname):
         """Create a pickle file containing the graph
 
         Args:
             fname (str): filename
         """
-        f = open(fname,'wb')
-        pickle.dump(self,f)
+        f = open(fname, "wb")
+        pickle.dump(self, f)
         f.close()
 
-    def print(self): #pragma: no cover
+    def print(self):  # pragma: no cover
         """Print the graph to screen for debugging."""
 
-        print('='*40)
-        print('=   ', self.name)
-        print('=    %d nodes' %self.num_nodes)
-        print('=    %d edges' %self.num_edges)
-        print('='*40)
-        print('\n ----- Nodes')
+        print("=" * 40)
+        print("=   ", self.name)
+        print("=    %d nodes" % self.num_nodes)
+        print("=    %d edges" % self.num_edges)
+        print("=" * 40)
+        print("\n ----- Nodes")
         for iNode in range(self.num_nodes):
             for iP in range(20):
-                print('% 2d' %self.nodes_pssm_data[iNode][iP],end=' ')
+                print("% 2d" % self.nodes_pssm_data[iNode][iP], end=" ")
             print(self.nodes_info_data[iNode])
-        print('\n ----- Edges')
+        print("\n ----- Edges")
         for iE in range(self.num_edges):
-            print('%02d <--> %d' %(self.edges_index[iE][0],self.edges_index[iE][1]))
-        print('='*40)
-        print('\n')
+            print("%02d <--> %d" % (self.edges_index[iE][0], self.edges_index[iE][1]))
+        print("=" * 40)
+        print("\n")
 
-    def compare(self, gcheck,verbose = True):
+    def compare(self, gcheck, verbose=True):
         """Compare two graphs to see if they are identical.
         This can be very usefull to check if the graph outputed
         here are identical to the ones obtained with the matlab code
@@ -172,12 +181,18 @@ class Graph(object):
         same = 1
 
         if self.num_nodes != gcheck.num_nodes:
-            if verbose: #pragma: no cover
-                print('Graphs %s and %s have different number of nodes' %(self.name,gcheck.name))
+            if verbose:  # pragma: no cover
+                print(
+                    "Graphs %s and %s have different number of nodes"
+                    % (self.name, gcheck.name)
+                )
             same = 0
         if self.num_edges != gcheck.num_edges:
-            if verbose: #pragma: no cover
-                print('Graphs %s and %s have different number of edges' %(self.name,gcheck.name))
+            if verbose:  # pragma: no cover
+                print(
+                    "Graphs %s and %s have different number of edges"
+                    % (self.name, gcheck.name)
+                )
             same = 0
 
         if same:
@@ -189,13 +204,13 @@ class Graph(object):
             skip = 0
             for i in range(self.num_nodes):
                 try:
-                    ind = [k for k,x in enumerate(pssm_check) if x == pssm[i]]
-                    #ind = pssm_check.index(pssm[i])
+                    ind = [k for k, x in enumerate(pssm_check) if x == pssm[i]]
+                    # ind = pssm_check.index(pssm[i])
                     if len(ind) == 1:
                         ind = ind[0]
                         nodes_mapping[ind] = i
                     else:
-                        print('Warning multiple nodes with idential PSSM')
+                        print("Warning multiple nodes with idential PSSM")
                         skip = 1
                 except Exception as e:
                     if verbose:
@@ -207,23 +222,28 @@ class Graph(object):
 
                 try:
                     for i in range(gcheck.num_edges):
-                        x,y = gcheck.edges_index[i]
-                        a,b = nodes_mapping[x],nodes_mapping[y]
-                        if [a,b] not in edges and [b,a] not in edges:
+                        x, y = gcheck.edges_index[i]
+                        a, b = nodes_mapping[x], nodes_mapping[y]
+                        if [a, b] not in edges and [b, a] not in edges:
                             if verbose:
-                                print('Edges %d %d not found in original graph' %(a,b))
-                                print('corresponds to edges %d %d in reference graph' %(x,y))
+                                print(
+                                    "Edges %d %d not found in original graph" % (a, b)
+                                )
+                                print(
+                                    "corresponds to edges %d %d in reference graph"
+                                    % (x, y)
+                                )
                             same = 0
                 except:
                     if verbose:
-                        print('Node Mapping Issues')
+                        print("Node Mapping Issues")
                     same = 0
             if same and verbose:
-                print('Graphs %s and %s are identical' %(self.fname,gcheck.fname))
+                print("Graphs %s and %s are identical" % (self.fname, gcheck.fname))
 
         return same
 
-    def reconstruct_residue_graphs(self,pssm_dict):
+    def reconstruct_residue_graphs(self, pssm_dict):
         """Build the graph with the residue name/number corresponding to the PDB
 
         Args:
@@ -233,13 +253,31 @@ class Graph(object):
         for chain in self.chain_label:
             pssm[chain] = self.read_PSSM_data(pssm_dict[chain])
 
-
-         # residue name translation dict
+        # residue name translation dict
         resmap = {
-        'A' : 'ALA', 'R' : 'ARG', 'N' : 'ASN', 'D' : 'ASP', 'C' : 'CYS', 'E' : 'GLU', 'Q' : 'GLN',
-        'G' : 'GLY', 'H' : 'HIS', 'I' : 'ILE', 'L' : 'LEU', 'K' : 'LYS', 'M' : 'MET', 'F' : 'PHE',
-        'P' : 'PRO', 'S' : 'SER', 'T' : 'THR', 'W' : 'TRP', 'Y' : 'TYR', 'V' : 'VAL',
-        'B' : 'ASX', 'U' : 'SEC', 'Z' : 'GLX'
+            "A": "ALA",
+            "R": "ARG",
+            "N": "ASN",
+            "D": "ASP",
+            "C": "CYS",
+            "E": "GLU",
+            "Q": "GLN",
+            "G": "GLY",
+            "H": "HIS",
+            "I": "ILE",
+            "L": "LEU",
+            "K": "LYS",
+            "M": "MET",
+            "F": "PHE",
+            "P": "PRO",
+            "S": "SER",
+            "T": "THR",
+            "W": "TRP",
+            "Y": "TYR",
+            "V": "VAL",
+            "B": "ASX",
+            "U": "SEC",
+            "Z": "GLX",
         }
 
         self.pssm_name_dict = {}
@@ -247,36 +285,49 @@ class Graph(object):
         for chain in self.chain_label:
             for iL in range(len(pssm[chain])):
                 if pssm[chain][iL][1] in resmap:
-                    res = '_'.join([chain,pssm[chain][iL][0],resmap[pssm[chain][iL][1]]])
+                    res = "_".join(
+                        [chain, pssm[chain][iL][0], resmap[pssm[chain][iL][1]]]
+                    )
                 else:
-                    print('What is that ',pssm[chain][iL][1])
+                    print("What is that ", pssm[chain][iL][1])
                     exit()
-                tmp = (tuple([float(v) for v in pssm[chain][iL][4:]]))
+                tmp = tuple([float(v) for v in pssm[chain][iL][4:]])
                 if tmp not in self.pssm_name_dict:
                     self.pssm_name_dict[tmp] = res
                 else:
-                    print('Identical PSSM for different residue',tmp)
-                    if not isinstance(self.pssm_name_dict[tmp],list):
-                        self.pssm_name_dict[tmp]  = [self.pssm_name_dict[tmp]]
+                    print("Identical PSSM for different residue", tmp)
+                    if not isinstance(self.pssm_name_dict[tmp], list):
+                        self.pssm_name_dict[tmp] = [self.pssm_name_dict[tmp]]
                     self.pssm_name_dict[tmp].append(res)
 
     @staticmethod
     def read_PSSM_data(fname):
         """Read the PSSM data."""
 
-        f = open(fname,'r')
+        f = open(fname, "r")
         data = f.readlines()
         f.close()
 
-        filters = (lambda x: len(x.split())>0, lambda x: x.split()[0].isdigit())
-        return list(map(lambda x: x.split(),list(filter(lambda x: all(f(x) for f in filters), data))))
+        filters = (lambda x: len(x.split()) > 0, lambda x: x.split()[0].isdigit())
+        return list(
+            map(
+                lambda x: x.split(),
+                list(filter(lambda x: all(f(x) for f in filters), data)),
+            )
+        )
 
 
-
-class GenGraph():
-
-    def __init__(self,pdbfile,pssmfile, aligned=True, export=True,
-                 outname=None, cutoff=6.0, h5file = None):
+class GenGraph:
+    def __init__(
+        self,
+        pdbfile,
+        pssmfile,
+        aligned=True,
+        export=True,
+        outname=None,
+        cutoff=6.0,
+        h5file=None,
+    ):
         """Generates a graph from pdb and pssm files.
 
         Example:
@@ -305,10 +356,29 @@ class GenGraph():
 
         # residue name translation dict
         self.resmap = {
-        'A' : 'ALA', 'R' : 'ARG', 'N' : 'ASN', 'D' : 'ASP', 'C' : 'CYS', 'E' : 'GLU', 'Q' : 'GLN',
-        'G' : 'GLY', 'H' : 'HIS', 'I' : 'ILE', 'L' : 'LEU', 'K' : 'LYS', 'M' : 'MET', 'F' : 'PHE',
-        'P' : 'PRO', 'S' : 'SER', 'T' : 'THR', 'W' : 'TRP', 'Y' : 'TYR', 'V' : 'VAL',
-        'B' : 'ASX', 'U' : 'SEC', 'Z' : 'GLX'
+            "A": "ALA",
+            "R": "ARG",
+            "N": "ASN",
+            "D": "ASP",
+            "C": "CYS",
+            "E": "GLU",
+            "Q": "GLN",
+            "G": "GLY",
+            "H": "HIS",
+            "I": "ILE",
+            "L": "LEU",
+            "K": "LYS",
+            "M": "MET",
+            "F": "PHE",
+            "P": "PRO",
+            "S": "SER",
+            "T": "THR",
+            "W": "TRP",
+            "Y": "TYR",
+            "V": "VAL",
+            "B": "ASX",
+            "U": "SEC",
+            "Z": "GLX",
         }
         self.resmap_inv = {v: k for k, v in self.resmap.items()}
 
@@ -320,7 +390,9 @@ class GenGraph():
 
         # check format
         if not self.check_pssm_format(aligned):
-            print('--> PSSM format issue.\n--> Check if they are aligned or not.\n--> If they are use: iScore.generate --aligned')
+            print(
+                "--> PSSM format issue.\n--> Check if they are aligned or not.\n--> If they are use: iScore.generate --aligned"
+            )
             exit()
 
         # cutoff for the contact
@@ -328,7 +400,7 @@ class GenGraph():
 
         # out file
         if outname is None:
-            outname = os.path.splitext(pdbfile)[0] + '.pckl'
+            outname = os.path.splitext(pdbfile)[0] + ".pckl"
 
         # if the pssm data where not aligned
         if not aligned:
@@ -344,7 +416,7 @@ class GenGraph():
         if h5file is not None:
             self.toh5(h5file)
 
-    def check_pssm_format(self,aligned):
+    def check_pssm_format(self, aligned):
         """Check the format of the PSSM files
 
         Args:
@@ -358,18 +430,22 @@ class GenGraph():
         if aligned:
             return len(self.pssm[key][0]) == 25
         else:
-            return len(self.pssm[key][0]) == 44 #48 ?
+            return len(self.pssm[key][0]) == 44  # 48 ?
 
-
-    def read_PSSM_data(self,fname):
+    def read_PSSM_data(self, fname):
         """Read the PSSM data."""
 
-        f = open(fname,'r')
+        f = open(fname, "r")
         data = f.readlines()
         f.close()
 
-        filters = (lambda x: len(x.split())>0, lambda x: x.split()[0].isdigit())
-        return list(map(lambda x: x.split(),list(filter(lambda x: all(f(x) for f in filters), data))))
+        filters = (lambda x: len(x.split()) > 0, lambda x: x.split()[0].isdigit())
+        return list(
+            map(
+                lambda x: x.split(),
+                list(filter(lambda x: all(f(x) for f in filters), data)),
+            )
+        )
 
     def get_aligned_pssm(self):
         """Align the PSSM file to the pdb.
@@ -382,37 +458,48 @@ class GenGraph():
         self.aligned_ic = {}
         for chain in self.chain_label:
 
-            iResPDB,iResPSSM = 0,0
-            pdbres = [(numb,name) for numb,name in self.pdb.get('resSeq,resName',chainID=chain)]
+            iResPDB, iResPSSM = 0, 0
+            pdbres = [
+                (numb, name)
+                for numb, name in self.pdb.get("resSeq,resName", chainID=chain)
+            ]
             pdbres = [v for v in dict(pdbres).items()]
 
-            for resPDB,resPSSM in zip(self.seq_aligned['pdb'][chain], self.seq_aligned['pssm'][chain]):
+            for resPDB, resPSSM in zip(
+                self.seq_aligned["pdb"][chain], self.seq_aligned["pssm"][chain]
+            ):
 
-                if resPSSM == '-' and resPDB != '-':
-                    self.aligned_pssm[(chain,)+pdbres[iResPDB]] = None
-                    self.aligned_ic[(chain,)+pdbres[iResPDB]] = None
+                if resPSSM == "-" and resPDB != "-":
+                    self.aligned_pssm[(chain,) + pdbres[iResPDB]] = None
+                    self.aligned_ic[(chain,) + pdbres[iResPDB]] = None
                     iResPDB += 1
 
-                if resPSSM != '-' and resPDB == '-':
+                if resPSSM != "-" and resPDB == "-":
                     iResPSSM += 1
 
-                if resPSSM != '-' and resPDB != '-':
-                    self.aligned_pssm[(chain,)+pdbres[iResPDB]] = self.pssm[chain][iResPSSM][2:23]
-                    self.aligned_ic[(chain,)+pdbres[iResPDB]] = self.pssm[chain][iResPSSM][43]
+                if resPSSM != "-" and resPDB != "-":
+                    self.aligned_pssm[(chain,) + pdbres[iResPDB]] = self.pssm[chain][
+                        iResPSSM
+                    ][2:23]
+                    self.aligned_ic[(chain,) + pdbres[iResPDB]] = self.pssm[chain][
+                        iResPSSM
+                    ][43]
                     iResPDB += 1
                     iResPSSM += 1
 
     def _align_sequences(self):
         """Aling the squence given in a PDN and its PSSM files."""
 
-        self.seq_aligned = {'pdb':{},'pssm':{}}
+        self.seq_aligned = {"pdb": {}, "pssm": {}}
         for chain in self.chain_label:
             pdb_seq = self._get_sequence(chain=chain)
-            pssm_seq = ''.join( [data[1] for data in self.pssm[chain] ] )
-            self.seq_aligned['pdb'][chain], self.seq_aligned['pssm'][chain] = self._get_aligned_seq(pdb_seq,pssm_seq)
+            pssm_seq = "".join([data[1] for data in self.pssm[chain]])
+            (
+                self.seq_aligned["pdb"][chain],
+                self.seq_aligned["pssm"][chain],
+            ) = self._get_aligned_seq(pdb_seq, pssm_seq)
 
-
-    def _get_sequence(self,chain='A'):
+    def _get_sequence(self, chain="A"):
         """Get the sequence of a given chain in a PDB
 
         Args:
@@ -422,10 +509,10 @@ class GenGraph():
             str: 1 letter encoding sequence
         """
         data = []
-        for numb,name in self.pdb.get('resSeq,resName',chainID=chain):
+        for numb, name in self.pdb.get("resSeq,resName", chainID=chain):
             if name in self.resmap_inv.keys():
-                data.append((numb,self.resmap_inv[name]))
-        return ''.join([v[1] for v in dict(data).items()])
+                data.append((numb, self.resmap_inv[name]))
+        return "".join([v[1] for v in dict(data).items()])
 
     @staticmethod
     def _get_aligned_seq(seq1, seq2):
@@ -454,15 +541,15 @@ class GenGraph():
     def process_aligned_pssm(self):
         """get the information from an aligned PSSM file."""
 
-        self.aligned_pssm, self.aligned_ic = {},{}
+        self.aligned_pssm, self.aligned_ic = {}, {}
         for chain in self.chain_label:
             for l in self.pssm[chain]:
                 resi = int(l[0])
                 resn = self.resmap[l[1]]
-                self.aligned_pssm[(chain,resi,resn)] = l[4:24]
-                self.aligned_ic[(chain,resi,resn)] = l[24]
+                self.aligned_pssm[(chain, resi, resn)] = l[4:24]
+                self.aligned_ic[(chain, resi, resn)] = l[24]
 
-    def construct_graph(self,verbose=False,print_res_pairs=False):
+    def construct_graph(self, verbose=False, print_res_pairs=False):
         """Construct the graph corresponding to a given PDB
 
         Args:
@@ -471,40 +558,41 @@ class GenGraph():
         """
 
         db = interface(self.pdbfile)
-        res_contact_pairs = db.get_contact_residues(cutoff = self.cutoff,
-                                                    allchains=True,
-                                                    chain1=self.chain_label[0],
-                                                    chain2=self.chain_label[1],
-                                                    return_contact_pairs=True)
-
+        res_contact_pairs = db.get_contact_residues(
+            cutoff=self.cutoff,
+            allchains=True,
+            chain1=self.chain_label[0],
+            chain2=self.chain_label[1],
+            return_contact_pairs=True,
+        )
 
         # tag the non residues
         keys_to_pop = []
         for res in res_contact_pairs.keys():
             if res[2] not in self.resmap_inv:
                 keys_to_pop.append(res)
-                #res_contact_pairs.pop(res,None)
+                # res_contact_pairs.pop(res,None)
                 print(res)
-                warnings.warn('--> Residue not valid')
+                warnings.warn("--> Residue not valid")
 
         # tag the ones that are not in PSSM
         for res in list(res_contact_pairs.keys()):
             if res not in self.aligned_pssm:
                 keys_to_pop.append(res)
-                #res_contact_pairs.pop(res,None)
+                # res_contact_pairs.pop(res,None)
                 print(res)
-                warnings.warn('--> Residue not found in PSSM file')
+                warnings.warn("--> Residue not found in PSSM file")
 
         # Remove the residue
         for res in keys_to_pop:
             if res in res_contact_pairs:
-                res_contact_pairs.pop(res,None)
+                res_contact_pairs.pop(res, None)
 
         # get a list of residues of chain B
         # automatically remove the ones that are not proper res
         # and the ones that are not in the PSSM
         nodesB = []
-        for k,reslist in list(res_contact_pairs.items()):
+        for k, reslist in list(res_contact_pairs.items()):
             tmp_reslist = []
             for res in reslist:
                 if res[2] in self.resmap_inv and res in self.aligned_pssm:
@@ -512,7 +600,9 @@ class GenGraph():
                     tmp_reslist += [res]
                 else:
                     print(res)
-                    warnings.warn('--> Residue not found in PSSM file or Residue not recognized')
+                    warnings.warn(
+                        "--> Residue not found in PSSM file or Residue not recognized"
+                    )
             res_contact_pairs[k] = tmp_reslist
 
         nodesB = sorted(set(nodesB))
@@ -522,22 +612,21 @@ class GenGraph():
 
         # get the edge numbering
         self.edges = []
-        for key,val in res_contact_pairs.items():
+        for key, val in res_contact_pairs.items():
             ind1 = self.nodes.index(key)
             for v in val:
                 ind2 = self.nodes.index(v)
-                self.edges.append([ind1,ind2])
+                self.edges.append([ind1, ind2])
 
         if print_res_pairs:
-            for k,vs in res_contact_pairs.items():
+            for k, vs in res_contact_pairs.items():
                 print(k)
                 for v in vs:
-                    print('\t\t',v)
+                    print("\t\t", v)
 
-
-    def get_graph(self,name=None):
+    def get_graph(self, name=None):
         """Get the graph"""
-        nodes_data,nodes_info = [],[]
+        nodes_data, nodes_info = [], []
         for res in self.nodes:
 
             pssm = self.aligned_pssm[res]
@@ -549,21 +638,19 @@ class GenGraph():
         nodes_data = np.array(nodes_data)
         nodes_info = np.array(nodes_info)
 
-        nodes_pssm = np.array(nodes_data).astype('int')
-        nodes_info = np.array(nodes_info).astype('float')
+        nodes_pssm = np.array(nodes_data).astype("int")
+        nodes_info = np.array(nodes_info).astype("float")
 
         edges = np.array(self.edges)
 
         if name is None:
             name = os.path.splitext(self.pdbfile)[0]
 
-        return Graph(name = name,
-                      nodes_pssm = nodes_pssm,
-                      nodes_info = nodes_info,
-                      edges_index = edges)
+        return Graph(
+            name=name, nodes_pssm=nodes_pssm, nodes_info=nodes_info, edges_index=edges
+        )
 
-
-    def export_graph(self,fname):
+    def export_graph(self, fname):
         """Export the graph of a given PDB
 
         Args:
@@ -575,10 +662,9 @@ class GenGraph():
         if graph.num_nodes > 0:
             graph.pickle(fname)
         else:
-            print('Warning : Graph %s not exported (num_nodes = 0)' %fname)
+            print("Warning : Graph %s not exported (num_nodes = 0)" % fname)
 
-
-    def toh5(self,f5):
+    def toh5(self, f5):
         """Export the graph into an exisiting and open HDF5 file.
 
         Args:
@@ -587,13 +673,20 @@ class GenGraph():
 
         grp_name = os.path.splitext(os.path.basename(self.pdbfile))[0]
         grp = f5.create_group(grp_name)
-        grp.attrs['pdbfile'] = os.path.abspath(self.pdbfile)
-        grp.create_dataset('nodes',data = np.array(self.nodes).astype('S'))
-        grp.create_dataset('edges',data = np.array(self.edges))
+        grp.attrs["pdbfile"] = os.path.abspath(self.pdbfile)
+        grp.create_dataset("nodes", data=np.array(self.nodes).astype("S"))
+        grp.create_dataset("edges", data=np.array(self.edges))
 
 
-def iscore_graph(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
-                 outdir='./graph/',aligned=True, export_hdf5=False):
+def iscore_graph(
+    pdb_path="./pdb/",
+    pssm_path="./pssm/",
+    select=None,
+    outdir="./graph/",
+    aligned=True,
+    export_hdf5=False,
+    debug=False,
+):
     """Function called in the binary iScore.graph
 
     Args:
@@ -611,11 +704,11 @@ def iscore_graph(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
 
     # make sure that the dir containing the PDBs exists
     if not os.path.isdir(pdb_path):
-        raise NotADirectoryError(pdb_path + ' is not a directory')
+        raise NotADirectoryError(pdb_path + " is not a directory")
 
     # make sure that the dir containing the PSSMs exists
     if not os.path.isdir(pssm_path):
-        raise NotADirectoryError(pssm_path + ' is not a directory')
+        raise NotADirectoryError(pssm_path + " is not a directory")
 
     # create the outdir if necessary
     if not os.path.isdir(outdir):
@@ -624,21 +717,21 @@ def iscore_graph(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
     # check if we want to select a subset of PDBs
     if select is not None:
         if not os.path.isfile(select):
-            raise FileNotFoundError(select + ' is not a file')
+            raise FileNotFoundError(select + " is not a file")
         else:
-            with open(select,'r') as f:
+            with open(select, "r") as f:
                 select = f.readlines()
     else:
         select = None
 
     # get the list of PDB names
-    pdbs = list(filter(lambda x: x.endswith('.pdb'),os.listdir(pdb_path)))
+    pdbs = list(filter(lambda x: x.endswith(".pdb"), os.listdir(pdb_path)))
     if select is not None:
         _tmp = []
         for s in select:
-            s = s.strip('\n')
+            s = s.strip("\n")
             for p in pdbs:
-                if p.split('.')[0] == s:
+                if p.split(".")[0] == s:
                     _tmp.append(p)
         pdbs = _tmp
 
@@ -651,61 +744,83 @@ def iscore_graph(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
 
     # loop over all the PDBs
     for name in pdbs:
-
-        print('Creating graph of PDB %s' %name)
+        if debug:
+            print("Creating graph of PDB %s" % name)
 
         # pdb name
-        pdbfile = os.path.join(pdb_path,name)
+        pdbfile = os.path.join(pdb_path, name)
 
         # mol name and base name
         mol_name = os.path.splitext(name)[0]
 
         # get the pssm files
 
-
-        mol_pssm = list(filter(lambda x : x.startswith(mol_name+".") and x.endswith('.pdb.pssm'),all_pssm_files))
+        mol_pssm = list(
+            filter(
+                lambda x: x.startswith(mol_name + ".") and x.endswith(".pdb.pssm"),
+                all_pssm_files,
+            )
+        )
         if len(mol_pssm) == 0:
-            print('--> Assuming global naming scheme for pssm files')
-            mol_pssm = list(filter(lambda x : x.startswith(mol_name.split('_')[0]) and x.endswith('.pdb.pssm'),all_pssm_files))
+            print("--> Assuming global naming scheme for pssm files")
+            mol_pssm = list(
+                filter(
+                    lambda x: x.startswith(mol_name.split("_")[0])
+                    and x.endswith(".pdb.pssm"),
+                    all_pssm_files,
+                )
+            )
         mol_pssm.sort()
-        chain_label = [m.split('.')[-3] for m in mol_pssm]
+        chain_label = [m.split(".")[-3] for m in mol_pssm]
 
         # print the pssm and chains found
-        print(' --> Found the following chains and PSSM')
+        if debug:
+            print(" --> Found the following chains and PSSM")
         pssm = dict()
-        for c,f in zip(chain_label,mol_pssm):
-            print('     %s : %s' %(c,f))
-            pssm[c] = os.path.join(pssm_path,f)
+        for c, f in zip(chain_label, mol_pssm):
+            if debug:
+                print("     %s : %s" % (c, f))
+            pssm[c] = os.path.join(pssm_path, f)
 
         # append the pssm path to the files
-        mol_pssm = [os.path.join(pssm_path,f) for f in mol_pssm]
+        mol_pssm = [os.path.join(pssm_path, f) for f in mol_pssm]
 
         # check if the pssms exists
-        #if os.path.isfile(mol_pssm[0]) and os.path.isfile(mol_pssm[1]):
+        # if os.path.isfile(mol_pssm[0]) and os.path.isfile(mol_pssm[1]):
         #    pssm = {chain_label[0]:mol_pssm[0],chain_label[1]:mol_pssm[1]}
-        #else:
+        # else:
         #    raise FileNotFoundError(mol_pssm[0] + ' or ' + mol_pssm[1] + ' not found')
 
         # output file
-        graphfile = os.path.join(outdir+mol_name+'.pckl')
+        graphfile = os.path.join(outdir + mol_name + ".pckl")
 
         if export_hdf5:
-            h5name = './graphs.hdf5'
-            f5 = h5py.File(h5name,'a')
+            h5name = "./graphs.hdf5"
+            f5 = h5py.File(h5name, "a")
         else:
             f5 = None
 
         # create the graphs
-        GenGraph(pdbfile,pssm,aligned=aligned,outname=graphfile,export=True,h5file=f5)
+        GenGraph(
+            pdbfile, pssm, aligned=aligned, outname=graphfile, export=True, h5file=f5
+        )
 
         if export_hdf5:
             f5.close()
 
 
-
-def iscore_graph_mpi(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
-                     outdir='./graph/',aligned=True, export_hdf5=False,
-                     rank=0,size=1,mpi_comm=None):
+def iscore_graph_mpi(
+    pdb_path="./pdb/",
+    pssm_path="./pssm/",
+    select=None,
+    outdir="./graph/",
+    aligned=True,
+    export_hdf5=False,
+    rank=0,
+    size=1,
+    mpi_comm=None,
+    debug=False,
+):
     """Function called in the binary iScore.graph.mpi
 
     Args:
@@ -721,18 +836,17 @@ def iscore_graph_mpi(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
         NotADirectoryError: If pdb_path or pssm_path were not found
     """
 
-
     if rank == 0:
 
         # make sure that the dir containing the PDBs exists
         if not os.path.isdir(pdb_path):
-            raise NotADirectoryError(pdb_path + ' is not a directory')
+            raise NotADirectoryError(pdb_path + " is not a directory")
         # else:
         #     pdb_files = os.listdir(pdb_path)
 
         # make sure that the dir containing the PSSMs exists
         if not os.path.isdir(pssm_path):
-            raise NotADirectoryError(pssm_path + ' is not a directory')
+            raise NotADirectoryError(pssm_path + " is not a directory")
         # else:
         #     pssm_files = os.listdir(pssm_path)
 
@@ -743,17 +857,17 @@ def iscore_graph_mpi(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
         # check if we want to select a subset of PDBs
         if select is not None:
             if not os.path.isfile(select):
-                raise FileNotFoundError(select + ' is not a file')
+                raise FileNotFoundError(select + " is not a file")
             else:
-                with open(select,'r') as f:
+                with open(select, "r") as f:
                     select = f.readlines()
         else:
             select = None
 
         # get the list of PDB names
-        pdbs = list(filter(lambda x: x.endswith('.pdb'),os.listdir(pdb_path)))
+        pdbs = list(filter(lambda x: x.endswith(".pdb"), os.listdir(pdb_path)))
         if select is not None:
-            pdbs = list(filter(lambda x: x.startswith(select),pdbs))
+            pdbs = list(filter(lambda x: x.startswith(select), pdbs))
 
         # create the output file
         if not os.path.isdir(outdir):
@@ -764,45 +878,57 @@ def iscore_graph_mpi(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
         local_pdbs = pdbs[0]
 
         # send the list
-        for iP in range(1,size):
-            mpi_comm.send(pdbs[iP],dest=iP,tag=11)
+        for iP in range(1, size):
+            mpi_comm.send(pdbs[iP], dest=iP, tag=11)
 
     else:
-        local_pdbs = mpi_comm.recv(source=0,tag=11)
+        local_pdbs = mpi_comm.recv(source=0, tag=11)
 
     # get all the pssm files
     all_pssm_files = os.listdir(pssm_path)
 
     # loop over all the PDBs
     for name in local_pdbs:
-
-        print('[%03d] -- Creating graph of PDB %s' %(rank,name))
+        if debug:
+            print("[%03d] -- Creating graph of PDB %s" % (rank, name))
 
         # pdb name
-        pdbfile = os.path.join(pdb_path,name)
+        pdbfile = os.path.join(pdb_path, name)
 
         # mol name and base name
         mol_name = os.path.splitext(name)[0]
 
         # get the pssm files
-        mol_pssm = list(filter(lambda x : x.startswith(mol_name+'.') and x.endswith('.pdb.pssm'),all_pssm_files))
+        mol_pssm = list(
+            filter(
+                lambda x: x.startswith(mol_name + ".") and x.endswith(".pdb.pssm"),
+                all_pssm_files,
+            )
+        )
         if len(mol_pssm) == 0:
-            print('--> Assuming global naming scheme for pssm files')
-            mol_pssm = list(filter(lambda x : x.startswith(mol_name.split('_')[0]) and x.endswith('.pdb.pssm'),all_pssm_files))
+            print("--> Assuming global naming scheme for pssm files")
+            mol_pssm = list(
+                filter(
+                    lambda x: x.startswith(mol_name.split("_")[0])
+                    and x.endswith(".pdb.pssm"),
+                    all_pssm_files,
+                )
+            )
 
         mol_pssm.sort()
-        chain_label = [m.split('.')[-3] for m in mol_pssm]
-
+        chain_label = [m.split(".")[-3] for m in mol_pssm]
 
         # print the pssm and chains found
-        print(' --> Found the following chains and PSSM')
+        if debug:
+            print(" --> Found the following chains and PSSM")
         pssm = dict()
-        for c,f in zip(chain_label,mol_pssm):
-            print('     %s : %s' %(c,f))
-            pssm[c] = os.path.join(pssm_path,f)
+        for c, f in zip(chain_label, mol_pssm):
+            if debug:
+                print("     %s : %s" % (c, f))
+            pssm[c] = os.path.join(pssm_path, f)
 
         # append the pssm path to the files
-        mol_pssm = [os.path.join(pssm_path,f) for f in mol_pssm]
+        mol_pssm = [os.path.join(pssm_path, f) for f in mol_pssm]
 
         # # check if the pssms exists
         # if os.path.isfile(mol_pssm[0]) and os.path.isfile(mol_pssm[1]):
@@ -811,16 +937,16 @@ def iscore_graph_mpi(pdb_path='./pdb/',pssm_path='./pssm/',select=None,
         #     raise FileNotFoundError(mol_pssm[0] + ' or ' + mol_pssm[1] + ' not found')
 
         # output file
-        graphfile = os.path.join(outdir+mol_name+'.pckl')
+        graphfile = os.path.join(outdir + mol_name + ".pckl")
 
         if export_hdf5:
-            h5name = 'graphs_%d.hdf5' %rank
-            f5 = h5py.File(h5name,'w')
+            h5name = "graphs_%d.hdf5" % rank
+            f5 = h5py.File(h5name, "w")
         else:
             f5 = None
 
         # create the graphs
-        GenGraph(pdbfile,pssm,aligned=aligned,outname=graphfile,h5file=f5)
+        GenGraph(pdbfile, pssm, aligned=aligned, outname=graphfile, h5file=f5)
 
         if export_hdf5:
             f5.close()
