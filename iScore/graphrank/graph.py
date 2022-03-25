@@ -425,7 +425,6 @@ class GenGraph:
         Returns:
             bool: 1 if format is ok 0 otherwise
         """
-
         key = list(self.pssm.keys())[0]
         if aligned:
             return len(self.pssm[key][0]) == 25
@@ -801,6 +800,8 @@ def iscore_graph(
             f5 = None
 
         # create the graphs
+        if not pssm:
+            continue
         GenGraph(
             pdbfile, pssm, aligned=aligned, outname=graphfile, export=True, h5file=f5
         )
