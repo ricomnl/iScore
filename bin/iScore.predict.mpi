@@ -95,4 +95,4 @@ if rank == 0:
 	iscore_energy(method=args.energy)
 
 	# # final energy function
-	iscore()
+	iscore(normalize_graph_rank=False)
